@@ -16,14 +16,35 @@
   h1 { font-size: 1.1rem; color: #e8954e; letter-spacing: 1px; text-transform: uppercase; }
   h2 { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-box { background: #0d0d1a; border: 1px solid #333; border-radius: 6px; padding: 10px 8px; text-align: center; }
-  .stat-box .val { font-size: 1.5rem; font-weight: 700; color: #e8954e; }
+  .stat-box { background: #0d0d1a; border: 1px solid #333; border-radius: 6px; padding: 8px 6px; text-align: center; }
+  .stat-box .val { font-size: 1.35rem; font-weight: 700; color: #e8954e; }
   .stat-box .lbl { font-size: 0.65rem; color: #888; margin-top: 2px; }
   #no-route-msg { display:none; background:#3a0000; border:1px solid #c00; border-radius:6px;
     padding:12px; color:#ff8080; font-size:0.85rem; text-align:center; }
   .legend { display: flex; flex-direction: column; gap: 5px; }
-  .leg-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+  .leg-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
   .swatch { width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0; }
+  
+  .ti-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #0d0887, #6a00a8, #b12a90, #e16462, #fca636, #f0f921);
+    margin: 4px 0 2px 0;
+  }
+  .ti-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: #bbb;
+  }
+  .sub-note {
+    font-size: 0.64rem;
+    color: #888;
+    margin-top: 2px;
+    font-style: italic;
+  }
+
   .note { font-size: 0.68rem; color: #777; border-top: 1px solid #333; padding-top: 10px; line-height: 1.6; }
   .credit { font-size: 0.62rem; color: #555; border-top: 1px solid #222; padding-top: 8px; line-height: 1.6; }
   .leaflet-control-layers { background:#1a1a2e !important; color:#eee !important; border:1px solid #444 !important; border-radius:6px !important; }
@@ -39,16 +60,18 @@
 
 <div id="panel">
   <h1>🚀 Marswalk Planner</h1>
-  <div><h2>Gale Crater — HiRISE DTM</h2></div>
+  <div><h2>Gale Crater — HiRISE &amp; THEMIS</h2></div>
 
   <div>
-    <h2>Route Statistics</h2>
+    <h2>Route &amp; Terrain Statistics</h2>
     <div id="no-route-msg">⛔ No safe route found</div>
     <div class="stat-grid" id="stats">
       <div class="stat-box"><div class="val" id="stat-length">—</div><div class="lbl">Length (m)</div></div>
       <div class="stat-box"><div class="val" id="stat-slope">—</div><div class="lbl">Max Slope</div></div>
       <div class="stat-box"><div class="val" id="stat-caution">—</div><div class="lbl">% Caution</div></div>
       <div class="stat-box"><div class="val" id="stat-pts">—</div><div class="lbl">Waypoints</div></div>
+      <div class="stat-box"><div class="val" id="stat-ti-start">—</div><div class="lbl">Start TI (tiu)</div></div>
+      <div class="stat-box"><div class="val" id="stat-ti-target">—</div><div class="lbl">Target TI (tiu)</div></div>
     </div>
   </div>
 
@@ -64,6 +87,17 @@
     </div>
   </div>
 
+  <div>
+    <h2>Thermal Inertia (THEMIS)</h2>
+    <div class="ti-bar"></div>
+    <div class="ti-labels">
+      <span id="ti-legend-min">Low</span>
+      <span>J m⁻² K⁻¹ s⁻½ (tiu)</span>
+      <span id="ti-legend-max">High</span>
+    </div>
+    <div class="sub-note">Coarse spatial resolution (100 m/px native, bilinearly resampled)</div>
+  </div>
+
   <div class="note">
     ⚠️ Thresholds are <strong>lunar figures used as assumptions for Mars</strong>:<br/>
     • 20° hard limit — NASA HLS suited-walking requirement (NTRS&nbsp;20210026296)<br/>
@@ -73,9 +107,10 @@
 
   <div class="credit">
     <strong>Data credits:</strong><br/>
-    HiRISE imagery &amp; DTM: NASA/JPL/University of Arizona<br/>
-    DTM production: USGS Astrogeology Science Center<br/>
-    Dataset: DTEEC_001488_1750_001752_1750_U02 / PSP_001752_1750_RED_C_01_ORTHO
+    • HiRISE imagery &amp; DTM: NASA/JPL/University of Arizona<br/>
+    • DTM production: USGS Astrogeology Science Center<br/>
+    • Thermal Inertia: NASA/JPL/Arizona State University (THEMIS), mosaic by USGS Astrogeology<br/>
+    Datasets: DTEEC_001488_1750_001752_1750_U02 / THEMIS Quantitative Mosaic
   </div>
 </div>
 
@@ -96,6 +131,7 @@ function initMap(d) {
   const orthoLayer     = L.imageOverlay('ortho.png',       bounds, { opacity: 1.0 });
   const hillshadeLayer = L.imageOverlay('hillshade.png',   bounds, { opacity: 0.65 });
   const slopeLayer     = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(map);
+  const themisLayer    = L.imageOverlay('themis.png',      bounds, { opacity: 0.75 });
 
   map.fitBounds(bounds);
 
@@ -123,16 +159,35 @@ function initMap(d) {
       iconSize: [16,16], iconAnchor: [8,8]
     });
 
-    startMarker  = L.marker(rc2ll(sr, sc), { icon: greenIcon }).bindPopup('<b>Start</b>').addTo(map);
-    targetMarker = L.marker(rc2ll(tr, tc), { icon: redIcon   }).bindPopup(`<b>${tLabel}</b>`).addTo(map);
+    const startPopup = `<b>Start</b><br/>TI: ${d.ti_start !== undefined ? d.ti_start + ' tiu' : 'N/A'}`;
+    const targetPopup = `<b>${tLabel}</b><br/>TI: ${d.ti_target !== undefined ? d.ti_target + ' tiu' : 'N/A'}`;
+
+    startMarker  = L.marker(rc2ll(sr, sc), { icon: greenIcon }).bindPopup(startPopup).addTo(map);
+    targetMarker = L.marker(rc2ll(tr, tc), { icon: redIcon   }).bindPopup(targetPopup).addTo(map);
 
     document.getElementById('stat-length').textContent  = d.length_m.toFixed(0);
     document.getElementById('stat-slope').textContent   = d.max_slope_deg.toFixed(1) + '°';
     document.getElementById('stat-caution').textContent = d.pct_caution.toFixed(1) + '%';
     document.getElementById('stat-pts').textContent     = d.route.length;
+
+    if (d.ti_start !== undefined && d.ti_start !== null) {
+      document.getElementById('stat-ti-start').textContent = Math.round(d.ti_start);
+    }
+    if (d.ti_target !== undefined && d.ti_target !== null) {
+      document.getElementById('stat-ti-target').textContent = Math.round(d.ti_target);
+    }
+    if (d.ti_min !== undefined && d.ti_max !== undefined) {
+      document.getElementById('ti-legend-min').textContent = Math.round(d.ti_min);
+      document.getElementById('ti-legend-max').textContent = Math.round(d.ti_max);
+    }
   }
 
-  const overlays = { 'Ortho image': orthoLayer, 'Hillshade': hillshadeLayer, 'Slope classes': slopeLayer };
+  const overlays = {
+    'Ortho image': orthoLayer,
+    'Hillshade': hillshadeLayer,
+    'Slope classes': slopeLayer,
+    'Thermal Inertia (THEMIS)': themisLayer,
+  };
   if (routeLayer)    overlays['Route']  = routeLayer;
   if (startMarker)   overlays['Start']  = startMarker;
   if (targetMarker)  overlays['Target'] = targetMarker;

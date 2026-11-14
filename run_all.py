@@ -5,9 +5,10 @@ import subprocess, sys
 
 PYTHON = sys.executable
 steps = [
-    ("Step 1: Crop",       "step1_crop.py"),
-    ("Step 2: Slope",      "step2_slope.py"),
-    ("Step 3: Route",      "step3_route.py"),
+    ("Step 1: Crop",           "step1_crop.py"),
+    ("Step 2: Slope",          "step2_slope.py"),
+    ("Step 3: Route",          "step3_route.py"),
+    ("Step 4: THEMIS Layer",   "step4_themis.py"),
 ]
 
 for label, script in steps:

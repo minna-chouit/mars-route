@@ -13,6 +13,11 @@ They must be validated against specific hardware specs before operational use.
 # ---------------------------------------------------------------------------
 DTM_PATH   = "data/DTEEC_001488_1750_001752_1750_U02.IMG"
 ORTHO_PATH = "data/PSP_001752_1750_RED_C_01_ORTHO.JP2"
+THEMIS_TI_URL = (
+    "https://asc-astropedia.s3.us-west-2.amazonaws.com/Mars/Odyssey/"
+    "THEMIS-Global-Thermal-Inertia-Mosaic/Quantitative-32-Bit/"
+    "THEMIS_TI_Mosaic_Quant_30S120E_100mpp.cub"
+)
 
 # ---------------------------------------------------------------------------
 # Pixel size (metres) — from PDS label
