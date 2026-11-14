@@ -72,3 +72,8 @@ web/
   preview_dtm.png    ← DTM preview (choose crop)
   preview_ortho.png  ← Ortho preview (choose crop)
 ```
+
+## Data (not included in the repo)
+Download these into a `data/` folder, then run `python run_all.py`:
+- https://www.uahirise.org/PDS/DTM/PSP/ORB_001400_001499/PSP_001488_1750_PSP_001752_1750/DTEEC_001488_1750_001752_1750_U02.IMG
+- https://www.uahirise.org/PDS/DTM/PSP/ORB_001400_001499/PSP_001488_1750_PSP_001752_1750/PSP_001752_1750_RED_C_01_ORTHO.JP2
