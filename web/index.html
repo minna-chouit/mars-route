@@ -7,76 +7,30 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { display: flex; height: 100vh; background: #111; color: #eee; font-family: 'Segoe UI', sans-serif; }
-
-  #map { flex: 1; background: #2a2a2a; }  /* plain grey base */
-
+  #map { flex: 1; background: #2a2a2a; }
   #panel {
-    width: 320px;
-    background: #1a1a2e;
-    display: flex;
-    flex-direction: column;
-    padding: 20px 16px;
-    gap: 14px;
-    overflow-y: auto;
-    border-left: 2px solid #e63f17;
-    flex-shrink: 0;
+    width: 320px; background: #1a1a2e; display: flex; flex-direction: column;
+    padding: 20px 16px; gap: 14px; overflow-y: auto;
+    border-left: 2px solid #e63f17; flex-shrink: 0;
   }
-
   h1 { font-size: 1.1rem; color: #e8954e; letter-spacing: 1px; text-transform: uppercase; }
   h2 { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-box {
-    background: #0d0d1a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    padding: 10px 8px;
-    text-align: center;
-  }
+  .stat-box { background: #0d0d1a; border: 1px solid #333; border-radius: 6px; padding: 10px 8px; text-align: center; }
   .stat-box .val { font-size: 1.5rem; font-weight: 700; color: #e8954e; }
   .stat-box .lbl { font-size: 0.65rem; color: #888; margin-top: 2px; }
-
-  #no-route-msg {
-    display: none;
-    background: #3a0000;
-    border: 1px solid #c00;
-    border-radius: 6px;
-    padding: 12px;
-    color: #ff8080;
-    font-size: 0.85rem;
-    text-align: center;
-  }
-
+  #no-route-msg { display:none; background:#3a0000; border:1px solid #c00; border-radius:6px;
+    padding:12px; color:#ff8080; font-size:0.85rem; text-align:center; }
   .legend { display: flex; flex-direction: column; gap: 5px; }
   .leg-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
   .swatch { width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0; }
-
-  .note {
-    font-size: 0.68rem;
-    color: #777;
-    border-top: 1px solid #333;
-    padding-top: 10px;
-    line-height: 1.6;
-  }
-  .credit {
-    font-size: 0.62rem;
-    color: #555;
-    border-top: 1px solid #222;
-    padding-top: 8px;
-    line-height: 1.6;
-  }
-
-  /* Dark layer control */
-  .leaflet-control-layers {
-    background: #1a1a2e !important;
-    color: #eee !important;
-    border: 1px solid #444 !important;
-    border-radius: 6px !important;
-  }
-  .leaflet-control-layers label { color: #ccc !important; font-size: 0.82rem; }
-  .leaflet-control-layers-separator { border-top: 1px solid #444 !important; }
-  .leaflet-popup-content-wrapper { background: #1a1a2e; color: #eee; border: 1px solid #555; }
-  .leaflet-popup-tip { background: #1a1a2e; }
+  .note { font-size: 0.68rem; color: #777; border-top: 1px solid #333; padding-top: 10px; line-height: 1.6; }
+  .credit { font-size: 0.62rem; color: #555; border-top: 1px solid #222; padding-top: 8px; line-height: 1.6; }
+  .leaflet-control-layers { background:#1a1a2e !important; color:#eee !important; border:1px solid #444 !important; border-radius:6px !important; }
+  .leaflet-control-layers label { color:#ccc !important; font-size:0.82rem; }
+  .leaflet-control-layers-separator { border-top:1px solid #444 !important; }
+  .leaflet-popup-content-wrapper { background:#1a1a2e; color:#eee; border:1px solid #555; }
+  .leaflet-popup-tip { background:#1a1a2e; }
 </style>
 </head>
 <body>
@@ -102,18 +56,18 @@
     <h2>Slope Classification</h2>
     <div class="legend">
       <div class="leg-row"><div class="swatch" style="background:rgba(0,180,0,0.6)"></div> Safe ≤15° (assumed)</div>
-      <div class="leg-row"><div class="swatch" style="background:rgba(255,220,0,0.7)"></div> Caution 15–20° (assumed)</div>
+      <div class="leg-row"><div class="swatch" style="background:rgba(255,220,0,0.7)"></div> Caution 15–20°</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(220,0,0,0.75)"></div> No-Go >20° + 1px buffer</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(255,100,0,0.9);border:2px solid #fff"></div> Route</div>
       <div class="leg-row"><div class="swatch" style="background:#00ff44;border-radius:50%"></div> Start</div>
-      <div class="leg-row"><div class="swatch" style="background:#ff2244;border-radius:50%"></div> Ridge base target</div>
+      <div class="leg-row"><div class="swatch" style="background:#ff2244;border-radius:50%"></div> Target</div>
     </div>
   </div>
 
   <div class="note">
     ⚠️ Thresholds are <strong>lunar figures used as assumptions for Mars</strong>:<br/>
-    • 20° hard limit — NASA HLS suited-walking requirement (NTRS 20210026296)<br/>
-    • 15° preferred cap — lunar south-pole traverse study (phys.org, Oct 2023)<br/>
+    • 20° hard limit — NASA HLS suited-walking requirement (NTRS&nbsp;20210026296)<br/>
+    • 15° preferred cap — lunar south-pole traverse study (phys.org, Oct&nbsp;2023)<br/>
     Validate against specific hardware specs before mission use.
   </div>
 
@@ -129,48 +83,36 @@
 <script>
 fetch('route.json')
   .then(r => r.json())
-  .then(data => initMap(data))
+  .then(initMap)
   .catch(() => initMap(null));
 
-function initMap(routeData) {
+function initMap(d) {
   const IMG_W = 1977, IMG_H = 1977;
   const bounds = [[0, 0], [IMG_H, IMG_W]];
 
-  // Plain grey base — no tile layer needed
-  const map = L.map('map', {
-    crs: L.CRS.Simple,
-    minZoom: -3,
-    maxZoom: 4,
-  });
-
-  // Helper: image [row, col] → Leaflet LatLng (y-flipped)
+  const map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 4 });
   function rc2ll(r, c) { return [IMG_H - r, c]; }
 
-  // ── Overlays (all off except those added to map below) ────────────────────
-  const orthoLayer    = L.imageOverlay('ortho.png',       bounds, { opacity: 1.0 });
-  const hillshadeLayer= L.imageOverlay('hillshade.png',   bounds, { opacity: 0.65 });
-  const slopeLayer    = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(map);
+  const orthoLayer     = L.imageOverlay('ortho.png',       bounds, { opacity: 1.0 });
+  const hillshadeLayer = L.imageOverlay('hillshade.png',   bounds, { opacity: 0.65 });
+  const slopeLayer     = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(map);
 
-  // fitBounds fills the viewport exactly
   map.fitBounds(bounds);
 
-  // ── Route, start, target ──────────────────────────────────────────────────
   let routeLayer, startMarker, targetMarker;
 
-  if (routeData && routeData.no_route) {
+  if (d && d.no_route) {
     document.getElementById('no-route-msg').style.display = 'block';
     document.getElementById('stats').style.display = 'none';
-  } else if (routeData && routeData.route.length > 0) {
-    const pts = routeData.route
-      .filter((_, i) => i % 3 === 0 || i === routeData.route.length - 1)
+  } else if (d && d.route.length > 0) {
+    const pts = d.route
+      .filter((_, i) => i % 3 === 0 || i === d.route.length - 1)
       .map(([r, c]) => rc2ll(r, c));
+    routeLayer = L.polyline(pts, { color: '#ff6400', weight: 3, opacity: 0.95 }).addTo(map);
 
-    routeLayer = L.polyline(pts, { color: '#ff6400', weight: 3, opacity: 0.95 });
-    routeLayer.addTo(map);   // checked by default
-
-    const [sr, sc] = routeData.start;
-    const [tr, tc] = routeData.target;
-    const tLabel   = routeData.target_label || 'Target';
+    const [sr, sc] = d.start;
+    const [tr, tc] = d.target;
+    const tLabel   = d.target_label || 'Target';
 
     const greenIcon = L.divIcon({
       html: '<div style="width:16px;height:16px;border-radius:50%;background:#00ff44;border:3px solid #fff;box-shadow:0 0 8px #0f0"></div>',
@@ -181,39 +123,25 @@ function initMap(routeData) {
       iconSize: [16,16], iconAnchor: [8,8]
     });
 
-    startMarker  = L.marker(rc2ll(sr, sc), { icon: greenIcon })
-                    .bindPopup('<b>Start</b>');
-    targetMarker = L.marker(rc2ll(tr, tc), { icon: redIcon })
-                    .bindPopup(`<b>${tLabel}</b>`);
+    startMarker  = L.marker(rc2ll(sr, sc), { icon: greenIcon }).bindPopup('<b>Start</b>').addTo(map);
+    targetMarker = L.marker(rc2ll(tr, tc), { icon: redIcon   }).bindPopup(`<b>${tLabel}</b>`).addTo(map);
 
-    startMarker.addTo(map);   // checked by default
-    targetMarker.addTo(map);  // checked by default
-
-    document.getElementById('stat-length').textContent  = routeData.length_m.toFixed(0);
-    document.getElementById('stat-slope').textContent   = routeData.max_slope_deg.toFixed(1) + '°';
-    document.getElementById('stat-caution').textContent = routeData.pct_caution.toFixed(1) + '%';
-    document.getElementById('stat-pts').textContent     = routeData.route.length;
+    document.getElementById('stat-length').textContent  = d.length_m.toFixed(0);
+    document.getElementById('stat-slope').textContent   = d.max_slope_deg.toFixed(1) + '°';
+    document.getElementById('stat-caution').textContent = d.pct_caution.toFixed(1) + '%';
+    document.getElementById('stat-pts').textContent     = d.route.length;
   }
 
-  // ── Layer control — no base layers, only overlays ─────────────────────────
-  const overlays = {
-    'Ortho image':   orthoLayer,
-    'Hillshade':     hillshadeLayer,
-    'Slope classes': slopeLayer,
-  };
+  const overlays = { 'Ortho image': orthoLayer, 'Hillshade': hillshadeLayer, 'Slope classes': slopeLayer };
   if (routeLayer)    overlays['Route']  = routeLayer;
   if (startMarker)   overlays['Start']  = startMarker;
   if (targetMarker)  overlays['Target'] = targetMarker;
 
-  // Pass {} as baseLayers so control shows only overlays (all with checkboxes)
   L.control.layers({}, overlays, { collapsed: false }).addTo(map);
 
-  // ── Click → show coords ───────────────────────────────────────────────────
   map.on('click', e => {
-    const row = Math.round(IMG_H - e.latlng.lat);
-    const col = Math.round(e.latlng.lng);
-    L.popup()
-      .setLatLng(e.latlng)
+    const row = Math.round(IMG_H - e.latlng.lat), col = Math.round(e.latlng.lng);
+    L.popup().setLatLng(e.latlng)
       .setContent(`row=${row}, col=${col}<br/><small>Paste into config.py</small>`)
       .openOn(map);
   });
