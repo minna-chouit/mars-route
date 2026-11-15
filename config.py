@@ -13,6 +13,7 @@ They must be validated against specific hardware specs before operational use.
 # ---------------------------------------------------------------------------
 DTM_PATH   = "data/DTEEC_001488_1750_001752_1750_U02.IMG"
 ORTHO_PATH = "data/PSP_001752_1750_RED_C_01_ORTHO.JP2"
+BOULDER_ORTHO_PATH = "data/PSP_001752_1750_RED_A_01_ORTHO.JP2"
 THEMIS_TI_URL = (
     "https://asc-astropedia.s3.us-west-2.amazonaws.com/Mars/Odyssey/"
     "THEMIS-Global-Thermal-Inertia-Mosaic/Quantitative-32-Bit/"
@@ -49,16 +50,17 @@ HILLSHADE_ALTITUDE =  45.0  # degrees above horizon
 
 # ---------------------------------------------------------------------------
 # Route start (row, col) within the CROP — top-left quadrant
-# Target is chosen automatically by step3_route.py (ridge-base science target).
 # ---------------------------------------------------------------------------
-START  = (200, 200)   # (row, col) in crop coordinates
+START = (200, 200)   # (row, col) in crop coordinates
 
 # ---------------------------------------------------------------------------
-# Cost function
+# Cost function & Rock Hazard parameters
 # ---------------------------------------------------------------------------
-# Passable cells:  cost = 1 + 10 * (slope / SLOPE_SAFE)**2
+# Passable cells: cost = 1 + 10*(slope/15)**2 + BOULDER_PENALTY_SCALE * boulder_density
 # No-go cells (after 1-px dilation): cost = NOGO_COST (truly impassable)
 NOGO_COST = 1e9
-
-# No-go dilation radius (pixels) — safety buffer around steep terrain
 NOGO_DILATE_PX = 1
+BOULDER_PENALTY_SCALE = 1.0  # penalty per 20 m cell boulder count
+BOULDER_MIN_AREA_M2 = 0.5
+BOULDER_MAX_AREA_M2 = 20.0
+BOULDER_MAX_ECCENTRICITY = 0.9

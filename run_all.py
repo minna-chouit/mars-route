@@ -7,8 +7,9 @@ PYTHON = sys.executable
 steps = [
     ("Step 1: Crop",           "step1_crop.py"),
     ("Step 2: Slope",          "step2_slope.py"),
-    ("Step 3: Route",          "step3_route.py"),
     ("Step 4: THEMIS Layer",   "step4_themis.py"),
+    ("Step 5: Rock Hazards",   "step5_boulders.py"),
+    ("Step 3: Route Planning", "step3_route.py"),
 ]
 
 for label, script in steps:

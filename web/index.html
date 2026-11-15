@@ -76,6 +76,11 @@
   .stat-box .val { font-size: 1.25rem; font-weight: 700; color: #e8954e; }
   .stat-box .lbl { font-size: 0.63rem; color: #889; margin-top: 1px; }
 
+  /* Rock Hazard highlight */
+  .hazard-highlight {
+    color: #00e5ff !important;
+  }
+
   /* Budget inputs */
   .speed-ctrl {
     display: flex;
@@ -192,7 +197,7 @@
     <div id="no-route-msg"></div>
   </div>
 
-  <!-- Marswalk Budget -->
+  <!-- Marswalk Budget & Hazards -->
   <div class="card" id="budget-card">
     <h2>Marswalk Budget &amp; Constraints</h2>
     <div class="stat-grid">
@@ -200,6 +205,13 @@
       <div class="stat-box"><div class="val" id="stat-walk-time">—</div><div class="lbl">Walking Time</div></div>
       <div class="stat-box"><div class="val" id="stat-max-rad">—</div><div class="lbl">Max Radius from Base</div></div>
       <div class="stat-box"><div class="val" id="stat-slope">—</div><div class="lbl">Max Slope (Deg)</div></div>
+      <div class="stat-box" style="grid-column: span 2;">
+        <div class="val hazard-highlight" id="stat-boulders">—</div>
+        <div class="lbl">Boulders within 5 m of route</div>
+      </div>
+    </div>
+    <div style="font-size:0.64rem; color:#789; font-style:italic;">
+      * Rock hazards: <b>possible boulders from shadows, not validated</b> (0.25 m/px RED_A).
     </div>
     <div class="speed-ctrl">
       <span>Assumed Walking Speed:</span>
@@ -218,7 +230,7 @@
     <h2>Traverse Legs (Start → Stops → Return)</h2>
     <table class="leg-table">
       <thead>
-        <tr><th>Leg</th><th>Dist</th><th>Max°</th><th>Caut%</th></tr>
+        <tr><th>Leg</th><th>Dist</th><th>Max°</th><th>Bld ≤5m</th></tr>
       </thead>
       <tbody id="leg-tbody">
         <tr><td colspan="4" style="color:#778;">Loading legs…</td></tr>
@@ -241,11 +253,12 @@
 
   <!-- Slope & Terrain Legends -->
   <div class="card">
-    <h2>Slope Classification</h2>
+    <h2>Slope &amp; Hazard Classification</h2>
     <div class="legend">
       <div class="leg-row"><div class="swatch" style="background:rgba(0,180,0,0.6)"></div> Safe ≤15° (assumed)</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(255,220,0,0.7)"></div> Caution 15–20°</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(220,0,0,0.75)"></div> No-Go > threshold + 1px</div>
+      <div class="leg-row"><div class="swatch" style="background:#00e5ff;border-radius:50%"></div> Possible boulders (0.5–20 m², shadows)</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(255,100,0,0.95);border:1px solid #fff"></div> Continuous Traverse Route</div>
     </div>
   </div>
@@ -270,8 +283,13 @@
 
   <div class="credit">
     <strong>Data credits:</strong><br/>
-    • HiRISE imagery &amp; DTM: NASA/JPL/Univ. of Arizona (USGS Astrogeology)<br/>
-    • Thermal Inertia: NASA/JPL/Arizona State Univ. (THEMIS mosaic by USGS)
+    • HiRISE: NASA/JPL/University of Arizona<br/>
+    • DTM: USGS Astrogeology<br/>
+    • THEMIS: NASA/JPL/ASU
+  </div>
+
+  <div class="credit" style="border-top:1px solid #20202e; padding-top:6px; color:#778;">
+    <strong>Super Intelligence use:</strong> Code was developed with AI assistance (Google Antigravity/Gemini and Claude).
   </div>
 </div>
 
@@ -310,6 +328,9 @@ function initApp() {
   const orthoLayer = L.imageOverlay('ortho.png', bounds, { opacity: 1.0 });
   const hillshadeLayer = L.imageOverlay('hillshade.png', bounds, { opacity: 0.65 });
   
+  // Possible boulders: UNCHECKED by default
+  const bouldersLayer = L.imageOverlay('boulders.png', bounds, { opacity: 0.88 });
+
   // Slope classes: CHECKED by default
   const slopeLayer = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(mapInstance);
 
@@ -352,6 +373,7 @@ function initApp() {
     'Hillshade': hillshadeLayer,
     'Slope classes': slopeLayer,
     'Thermal Inertia (THEMIS 50%)': themisLayer,
+    'Possible boulders': bouldersLayer,
     'Traverse Route': routeGroup,
     'Science Stops & Base': markersGroup
   };
@@ -407,6 +429,7 @@ function renderThreshold(routeGroup, rc2ll) {
     document.getElementById('stat-walk-time').textContent = '—';
     document.getElementById('stat-max-rad').textContent = '—';
     document.getElementById('stat-slope').textContent = '—';
+    document.getElementById('stat-boulders').textContent = '—';
     document.getElementById('leg-tbody').innerHTML = '<tr><td colspan="4" style="color:#d99;text-align:center">Traverse blocked</td></tr>';
     
     const canvas = document.getElementById('profile-canvas');
@@ -436,6 +459,7 @@ function renderThreshold(routeGroup, rc2ll) {
   document.getElementById('stat-dist').textContent = Math.round(thData.total_distance_m) + ' m';
   document.getElementById('stat-max-rad').textContent = Math.round(thData.max_distance_from_start_m) + ' m';
   document.getElementById('stat-slope').textContent = thData.max_slope_deg.toFixed(1) + '°';
+  document.getElementById('stat-boulders').textContent = thData.boulders_within_5m !== undefined ? thData.boulders_within_5m : '0';
   updateBudget();
 
   // Populate legs table
@@ -447,7 +471,7 @@ function renderThreshold(routeGroup, rc2ll) {
       <td><b>${leg.name.replace(/Leg \d+: /, '')}</b></td>
       <td style="text-align:right">${Math.round(leg.length_m)}m</td>
       <td style="text-align:right">${leg.max_slope_deg.toFixed(1)}°</td>
-      <td style="text-align:right">${leg.pct_caution.toFixed(1)}%</td>
+      <td style="text-align:right;color:#00e5ff;font-weight:600">${leg.boulders_within_5m !== undefined ? leg.boulders_within_5m : '—'}</td>
     `;
     tbody.appendChild(tr);
   });

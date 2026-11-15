@@ -1,16 +1,22 @@
 """
-Step 3: Multi-stop science loop routing with safety thresholds (10°, 15°, 20°).
+Step 3: Multi-stop science loop routing with safety thresholds (10°, 15°, 20°)
+        and boulder-density penalty to avoid rock hazards.
 Continuous route: Start -> Stop 1 -> Stop 2 -> Stop 3 -> Start.
-Computes per-leg stats, total budget, max distance from start, and elevation profile data.
+Computes per-leg stats, total budget, max distance from start, elevation profile data,
+and counts boulders within 5 m of the route.
 """
 import os, sys, json
 import numpy as np
 from scipy.ndimage import binary_dilation
 from skimage.graph import route_through_array
+from scipy.spatial import cKDTree
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import SLOPE_SAFE, SLOPE_CAUTION, NOGO_COST, NOGO_DILATE_PX, START, PIXEL_SIZE_M
+from config import (
+    SLOPE_SAFE, SLOPE_CAUTION, NOGO_COST, NOGO_DILATE_PX,
+    START, PIXEL_SIZE_M, BOULDER_PENALTY_SCALE
+)
 
 os.makedirs("web", exist_ok=True)
 
@@ -18,11 +24,30 @@ slope = np.load("web/slope.npy").astype("float64")
 dtm   = np.load("web/dtm_crop.npy").astype("float64")
 H, W  = slope.shape
 
+# Load boulder density and boulder coordinates if available
+boulder_density = np.zeros((H, W), dtype=np.float32)
+if os.path.exists("web/boulder_density.npy"):
+    try:
+        boulder_density = np.load("web/boulder_density.npy").astype("float64")
+        print(f"Loaded boulder density grid (mean={boulder_density.mean():.2f}, max={boulder_density.max():.1f} / 20m cell)")
+    except Exception as e:
+        print(f"Warning: could not load boulder_density.npy: {e}")
+
+boulders_list = []
+boulder_tree = None
+boulder_coords_m = None
+if os.path.exists("web/boulders.json"):
+    try:
+        with open("web/boulders.json", "r") as f:
+            bld_data = json.load(f)
+            boulders_list = bld_data.get("boulders", [])
+            if len(boulders_list) > 0:
+                boulder_coords_m = np.array([[b["r"], b["c"]] for b in boulders_list]) * PIXEL_SIZE_M
+                print(f"Loaded {len(boulders_list)} boulder coordinates for proximity checks.")
+    except Exception as e:
+        print(f"Warning: could not load boulders.json: {e}")
+
 # ── Science Stops Definition ─────────────────────────────────────────────────
-# Start: Landing Site / Habitat base
-# Stop 1: Hollow (sedimentary depression)
-# Stop 2: Layered outcrop (lacustrine mudstone strata)
-# Stop 3: Boxwork ridge base (diagenetic vein network)
 STOPS = [
     {
         "id": "start",
@@ -65,7 +90,7 @@ if os.path.exists("web/route.json"):
     except Exception:
         pass
 
-# Also read THEMIS array if available to sample TI at each stop
+# Also sample TI at each stop if available
 themis_arr = None
 if os.path.exists("web/themis.npy"):
     try:
@@ -99,8 +124,13 @@ for th in THRESHOLDS:
     struct = np.ones((3, 3), dtype=bool)
     nogo = binary_dilation(raw_nogo, structure=struct, iterations=NOGO_DILATE_PX)
     
-    # Smooth quadratic penalty inside passable ground
-    cost = np.where(nogo, NOGO_COST, 1.0 + 10.0 * (slope / 15.0) ** 2)
+    # Smooth quadratic slope penalty + boulder density penalty inside passable ground
+    # No-go cells remain blocked with NOGO_COST
+    cost = np.where(
+        nogo,
+        NOGO_COST,
+        1.0 + 10.0 * (slope / 15.0) ** 2 + BOULDER_PENALTY_SCALE * boulder_density
+    )
     
     legs_info = []
     combined_route = []
@@ -142,6 +172,13 @@ for th in THRESHOLDS:
             )
             pct_cau = sum(1 for s in leg_slopes if 15.0 < s <= 20.0) / len(leg_slopes) * 100.0
             
+            # Count boulders within 5m of this leg
+            leg_boulders_5m = 0
+            if boulder_coords_m is not None and len(boulder_coords_m) > 0:
+                leg_tree = cKDTree(np.array(leg_pts) * PIXEL_SIZE_M)
+                dists, _ = leg_tree.query(boulder_coords_m, distance_upper_bound=5.0)
+                leg_boulders_5m = int(np.sum(dists <= 5.0))
+            
             legs_info.append({
                 "name": leg_name,
                 "from_stop": STOPS[from_idx]["name"],
@@ -149,14 +186,15 @@ for th in THRESHOLDS:
                 "length_m": round(leg_len_m, 1),
                 "max_slope_deg": round(max_sl, 1),
                 "pct_caution": round(pct_cau, 1),
+                "boulders_within_5m": leg_boulders_5m,
                 "waypoints": len(leg_pts)
             })
-            print(f"  {leg_name}: {leg_len_m:.1f} m, max slope {max_sl:.1f}°, {pct_cau:.1f}% caution")
+            print(f"  {leg_name}: {leg_len_m:.1f} m, max slope {max_sl:.1f}°, {pct_cau:.1f}% caution, {leg_boulders_5m} bld ≤5m")
             
             if len(combined_route) == 0:
                 combined_route.extend(leg_pts)
             else:
-                combined_route.extend(leg_pts[1:])  # avoid repeating junction point
+                combined_route.extend(leg_pts[1:])
                 
         except Exception as e:
             overall_safe = False
@@ -182,7 +220,14 @@ for th in THRESHOLDS:
         ]
         max_dist_from_start_m = max(distances_from_start)
         
-        # Profile samples along route (downsampled to ~250 points for fast rendering in SVG/canvas)
+        # Total boulders within 5m of continuous route
+        total_boulders_5m = 0
+        if boulder_coords_m is not None and len(boulder_coords_m) > 0:
+            full_tree = cKDTree(np.array(combined_route) * PIXEL_SIZE_M)
+            dists, _ = full_tree.query(boulder_coords_m, distance_upper_bound=5.0)
+            total_boulders_5m = int(np.sum(dists <= 5.0))
+        
+        # Profile samples along route (~250 points)
         step = max(1, len(combined_route) // 250)
         profile_pts = []
         cum_dist = 0.0
@@ -209,10 +254,11 @@ for th in THRESHOLDS:
             "max_slope_deg": round(max_slope_route, 1),
             "pct_caution": round(pct_caution_route, 1),
             "max_distance_from_start_m": round(max_dist_from_start_m, 1),
+            "boulders_within_5m": total_boulders_5m,
             "profile": profile_pts,
             "waypoints": len(combined_route)
         }
-        print(f"--> Threshold {th}°: SAFE LOOP! Total distance: {total_dist_m:.1f} m, Max radius: {max_dist_from_start_m:.1f} m")
+        print(f"--> Threshold {th}°: SAFE LOOP! Dist: {total_dist_m:.1f} m, Max radius: {max_dist_from_start_m:.1f} m, Boulders ≤5m: {total_boulders_5m}")
     else:
         results_by_thresh[th_key] = {
             "safe": False,
@@ -238,6 +284,8 @@ output_data = {
     "pct_caution": results_by_thresh[active_th].get("pct_caution", 0),
     "legs": results_by_thresh[active_th].get("legs", []),
     "max_distance_from_start_m": results_by_thresh[active_th].get("max_distance_from_start_m", 0),
+    "boulders_within_5m": results_by_thresh[active_th].get("boulders_within_5m", 0),
+    "boulder_hazard_label": "possible boulders from shadows, not validated",
     "no_route": not results_by_thresh[active_th].get("safe", False)
 }
 
@@ -246,7 +294,7 @@ output_data.update(existing_ti)
 
 with open("web/route.json", "w") as f:
     json.dump(output_data, f)
-print("\nSaved web/route.json with multi-stop loop and safety thresholds (10°, 15°, 20°).")
+print("\nSaved web/route.json with rock hazard avoidance & boulder proximity stats.")
 
 # Save debug preview PNG
 lo, hi = np.percentile(slope, 1), np.percentile(slope, 99)
