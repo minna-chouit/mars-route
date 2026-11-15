@@ -41,14 +41,14 @@ All map layers are rendered using Leaflet (`L.CRS.Simple`) with coordinate flip 
   - Yellow: Caution (15°–20°)
   - Red: No-Go (>20° with a 1-pixel morphological dilation safety buffer)
 - **Thermal Inertia (THEMIS 50%)**: Quantitative thermal inertia from the 100 m/px THEMIS global mosaic upsampled smoothly via bilinear interpolation, displayed at 50% opacity with a plasma color scale (unchecked by default).
-- **Possible boulders**: Detected candidate rocks (0.5–20 m² shadow blobs, eccentricity <0.9) shown as small cyan circle overlays (unchecked by default).
+- **Possible boulders**: Detected candidate rocks (2.0–20 m² shadow blobs, eccentricity <0.9) rendered via Leaflet canvas as small magenta circle markers (radius 3, fill #ff2bd6, 1px white outline, unchecked by default).
 - **Traverse Route**: Continuous multi-leg loop polyline connecting the habitat base and all science stops, colored orange (checked by default).
 - **Science Stops & Base**: Color-coded markers for the Landing Site and science waypoints, with interactive popups showing target descriptions, elevations, slopes, and local thermal inertia (checked by default).
 
 ## Safety Assumptions
 
 - **Lunar slope thresholds are assumptions**: The 20° hard cutoff is derived from NASA Human Landing System (HLS) suited-walking requirements (NTRS 20210026296), and the 15° preferred limit comes from a lunar south-pole traverse study (phys.org, Oct 2023). Both are lunar figures adopted as engineering assumptions for Martian suited EVA traverse planning and must be re-validated against specific rover and EVA suit mobility specifications.
-- **Walking speed is an assumption**: The walking time budget defaults to an assumed suited EVA walk speed of 0.8 m/s (~2.9 km/h), based on Apollo lunar field data and NASA analog field tests. This parameter is user-editable in the panel to test different mobility profiles.
+- **Walking speed is an assumption**: The walking time budget defaults to an assumed suited walking speed, not validated (default 0.8 m/s, user-editable in the panel).
 - **Science stops are illustrative**: The science stops (*Landing Site / Base*, *Hollow*, *Layered outcrop*, and *Boxwork ridge base*) are illustrative targets selected to demonstrate multi-stop routing through representative geological features in Gale Crater.
 - **Rock hazards are unvalidated**: Boulders are identified through classical morphological processing of high-contrast optical shadows from 0.25 m/px imagery; they represent potential boulder obstacles and are not field-validated ground truth.
 

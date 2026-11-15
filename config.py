@@ -61,6 +61,6 @@ START = (200, 200)   # (row, col) in crop coordinates
 NOGO_COST = 1e9
 NOGO_DILATE_PX = 1
 BOULDER_PENALTY_SCALE = 1.0  # penalty per 20 m cell boulder count
-BOULDER_MIN_AREA_M2 = 0.5
+BOULDER_MIN_AREA_M2 = 2.0
 BOULDER_MAX_AREA_M2 = 20.0
 BOULDER_MAX_ECCENTRICITY = 0.9

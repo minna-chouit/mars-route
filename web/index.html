@@ -10,7 +10,7 @@
   #map { flex: 1; background: #222; }
   
   #panel {
-    width: 340px; background: #151522; display: flex; flex-direction: column;
+    width: 350px; background: #151522; display: flex; flex-direction: column;
     padding: 16px 14px; gap: 12px; overflow-y: auto;
     border-left: 2px solid #e63f17; flex-shrink: 0;
   }
@@ -52,16 +52,23 @@
     text-align: center;
   }
   
-  /* Status / Alert Messages */
-  #no-route-msg {
+  /* Status / Alert Banner */
+  #route-status-msg {
     display: none;
-    background: #3a1010;
-    border: 1px solid #d32f2f;
-    border-radius: 6px;
-    padding: 10px;
-    color: #ff9999;
-    font-size: 0.78rem;
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-size: 0.75rem;
     line-height: 1.4;
+  }
+  .status-warning {
+    background: #2f1d0c;
+    border: 1px solid #e67e22;
+    color: #f39c12;
+  }
+  .status-safe {
+    background: #0f2b18;
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
   }
 
   /* Grid Stats */
@@ -78,7 +85,7 @@
 
   /* Rock Hazard highlight */
   .hazard-highlight {
-    color: #00e5ff !important;
+    color: #ff2bd6 !important;
   }
 
   /* Budget inputs */
@@ -135,14 +142,8 @@
   }
   #profile-canvas {
     width: 100%;
-    height: 95px;
+    height: 125px;
     display: block;
-  }
-  .profile-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.62rem;
-    color: #778;
   }
 
   /* Legend */
@@ -194,7 +195,7 @@
       <input type="range" id="safety-slider" min="10" max="20" step="5" value="20"/>
       <span style="font-size:0.68rem; color:#888;">20°</span>
     </div>
-    <div id="no-route-msg"></div>
+    <div id="route-status-msg"></div>
   </div>
 
   <!-- Marswalk Budget & Hazards -->
@@ -211,7 +212,7 @@
       </div>
     </div>
     <div style="font-size:0.64rem; color:#789; font-style:italic;">
-      * Rock hazards: <b>possible boulders from shadows, not validated</b> (0.25 m/px RED_A).
+      * Rock hazards: <b>possible boulders from shadows, not validated</b> (0.25 m/px RED_A, ≥2 m²).
     </div>
     <div class="speed-ctrl">
       <span>Assumed Walking Speed:</span>
@@ -221,7 +222,7 @@
       </div>
     </div>
     <div style="font-size:0.62rem; color:#778; font-style:italic;">
-      * Walking speed assumption: ~0.8 m/s (~2.9 km/h suited EVA walk per Apollo/NASA studies).
+      * Assumed suited walking speed, not validated.
     </div>
   </div>
 
@@ -240,14 +241,13 @@
 
   <!-- Elevation Profile Chart -->
   <div class="card" id="profile-card">
-    <h2>Elevation Profile along Traverse</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2>Elevation Profile (Closed Loop)</h2>
+      <span style="font-size:0.62rem; color:#00e676;">■ Safe ≤15°</span>
+      <span style="font-size:0.62rem; color:#ffd600;">■ Caution</span>
+    </div>
     <div id="profile-container">
-      <canvas id="profile-canvas" width="288" height="95"></canvas>
-      <div class="profile-labels">
-        <span id="prof-y-max">-4200m</span>
-        <span>Line: <span style="color:#00e676">■ Safe</span> <span style="color:#ffd600">■ Caution</span></span>
-        <span id="prof-y-min">-4420m</span>
-      </div>
+      <canvas id="profile-canvas" width="310" height="125"></canvas>
     </div>
   </div>
 
@@ -258,8 +258,8 @@
       <div class="leg-row"><div class="swatch" style="background:rgba(0,180,0,0.6)"></div> Safe ≤15° (assumed)</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(255,220,0,0.7)"></div> Caution 15–20°</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(220,0,0,0.75)"></div> No-Go > threshold + 1px</div>
-      <div class="leg-row"><div class="swatch" style="background:#00e5ff;border-radius:50%"></div> Possible boulders (0.5–20 m², shadows)</div>
-      <div class="leg-row"><div class="swatch" style="background:rgba(255,100,0,0.95);border:1px solid #fff"></div> Continuous Traverse Route</div>
+      <div class="leg-row"><div class="swatch" style="background:#ff2bd6;border:1px solid #fff;border-radius:50%"></div> Possible boulders (≥2 m², shadows)</div>
+      <div class="leg-row"><div class="swatch" style="background:#ff6400"></div> Planned Traverse Route (solid: safe / dashed: gentlest)</div>
     </div>
   </div>
 
@@ -302,6 +302,7 @@ let walkingSpeed = 0.8; // m/s default
 let mapInstance = null;
 let routePolyline = null;
 let markersGroup = null;
+let bouldersLayer = null;
 
 // Load route.json
 fetch('route.json')
@@ -311,8 +312,10 @@ fetch('route.json')
     initApp();
   })
   .catch(err => {
-    document.getElementById('no-route-msg').style.display = 'block';
-    document.getElementById('no-route-msg').textContent = 'Error loading route.json. Please run step3_route.py.';
+    const msg = document.getElementById('route-status-msg');
+    msg.style.display = 'block';
+    msg.className = 'status-warning';
+    msg.textContent = 'Error loading route.json. Please run step3_route.py.';
   });
 
 function initApp() {
@@ -323,22 +326,42 @@ function initApp() {
   function rc2ll(r, c) { return [IMG_H - r, c]; }
 
   // ── Overlays ─────────────────────────────────────────────────────────────
-  // 0. THEMIS: 50% opacity and UNCHECKED by default
+  // THEMIS: 50% opacity and UNCHECKED by default
   const themisLayer = L.imageOverlay('themis.png', bounds, { opacity: 0.5 });
   const orthoLayer = L.imageOverlay('ortho.png', bounds, { opacity: 1.0 });
   const hillshadeLayer = L.imageOverlay('hillshade.png', bounds, { opacity: 0.65 });
   
-  // Possible boulders: UNCHECKED by default
-  const bouldersLayer = L.imageOverlay('boulders.png', bounds, { opacity: 0.88 });
-
   // Slope classes: CHECKED by default
   const slopeLayer = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(mapInstance);
 
   mapInstance.fitBounds(bounds);
 
-  // Markers and route layer groups
-  markersGroup = L.layerGroup().addTo(mapInstance); // checked by default
-  const routeGroup = L.layerGroup().addTo(mapInstance); // checked by default
+  // Markers and route layer groups (checked by default)
+  markersGroup = L.layerGroup().addTo(mapInstance);
+  const routeGroup = L.layerGroup().addTo(mapInstance);
+
+  // Requirement 1: Render boulders with Leaflet Canvas Renderer as circleMarkers
+  // radius 3, fill magenta #ff2bd6, fillOpacity 0.9, white 1px outline
+  const canvasRenderer = L.canvas();
+  bouldersLayer = L.layerGroup(); // unchecked by default
+
+  fetch('boulders.json')
+    .then(r => r.json())
+    .then(bldData => {
+      if (bldData && bldData.boulders) {
+        bldData.boulders.forEach(b => {
+          L.circleMarker(rc2ll(b.r, b.c), {
+            renderer: canvasRenderer,
+            radius: 3,
+            fillColor: '#ff2bd6',
+            fillOpacity: 0.9,
+            color: '#ffffff',
+            weight: 1
+          }).bindPopup(`<b>Possible Boulder</b><br/>Diam: ${b.d} m<br/>Area: ${b.a} m²`).addTo(bouldersLayer);
+        });
+      }
+    })
+    .catch(() => {});
 
   // Populate Stop Markers
   if (masterData.stops) {
@@ -385,7 +408,7 @@ function initApp() {
     document.getElementById('ti-legend-max').textContent = Math.round(masterData.ti_max) + ' tiu';
   }
 
-  // Safety slider change listener
+  // Safety slider listener
   const slider = document.getElementById('safety-slider');
   slider.addEventListener('input', e => {
     currentThreshold = parseInt(e.target.value);
@@ -393,7 +416,7 @@ function initApp() {
     renderThreshold(routeGroup, rc2ll);
   });
 
-  // Speed input change listener
+  // Speed input listener
   const speedInput = document.getElementById('speed-input');
   speedInput.addEventListener('input', e => {
     const val = parseFloat(e.target.value);
@@ -412,39 +435,21 @@ function renderThreshold(routeGroup, rc2ll) {
   const thKey = String(currentThreshold);
   const thData = masterData.thresholds ? masterData.thresholds[thKey] : null;
 
-  const noRouteMsg = document.getElementById('no-route-msg');
-  const budgetCard = document.getElementById('budget-card');
-  const legsCard = document.getElementById('legs-card');
-  const profileCard = document.getElementById('profile-card');
+  const statusMsg = document.getElementById('route-status-msg');
+  if (!thData) return;
 
-  if (!thData || !thData.safe) {
-    noRouteMsg.style.display = 'block';
-    noRouteMsg.innerHTML = `⚠️ <b>No safe route found for ${currentThreshold}° threshold.</b><br/>` +
-      ((thData && thData.reason) ? thData.reason : 'Terrain exceeds slope limit along required legs.');
-    budgetCard.style.opacity = '0.4';
-    legsCard.style.opacity = '0.4';
-    profileCard.style.opacity = '0.4';
-    
-    document.getElementById('stat-dist').textContent = '—';
-    document.getElementById('stat-walk-time').textContent = '—';
-    document.getElementById('stat-max-rad').textContent = '—';
-    document.getElementById('stat-slope').textContent = '—';
-    document.getElementById('stat-boulders').textContent = '—';
-    document.getElementById('leg-tbody').innerHTML = '<tr><td colspan="4" style="color:#d99;text-align:center">Traverse blocked</td></tr>';
-    
-    const canvas = document.getElementById('profile-canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    return;
+  // Requirement 2: Never leave the panel blank!
+  // If threshold route exceeds limit or is blocked, draw dashed and show label
+  statusMsg.style.display = 'block';
+  if (thData.is_gentlest) {
+    statusMsg.className = 'status-warning';
+    statusMsg.innerHTML = `⚠️ <b>${thData.label}</b><br/>${thData.status_message}`;
+  } else {
+    statusMsg.className = 'status-safe';
+    statusMsg.innerHTML = `✅ <b>Safe Traverse (${currentThreshold}° Limit)</b><br/>${thData.status_message}`;
   }
 
-  // Route is safe!
-  noRouteMsg.style.display = 'none';
-  budgetCard.style.opacity = '1.0';
-  legsCard.style.opacity = '1.0';
-  profileCard.style.opacity = '1.0';
-
-  // Draw continuous route polyline
+  // Draw route polyline (dashed if gentlest loop, solid if safe)
   const pts = thData.route
     .filter((_, i) => i % 3 === 0 || i === thData.route.length - 1)
     .map(([r, c]) => rc2ll(r, c));
@@ -452,7 +457,8 @@ function renderThreshold(routeGroup, rc2ll) {
   routePolyline = L.polyline(pts, {
     color: '#ff6400',
     weight: 3.5,
-    opacity: 0.95
+    opacity: 0.95,
+    dashArray: thData.is_gentlest ? '7, 7' : null
   }).addTo(routeGroup);
 
   // Update budget values
@@ -471,19 +477,19 @@ function renderThreshold(routeGroup, rc2ll) {
       <td><b>${leg.name.replace(/Leg \d+: /, '')}</b></td>
       <td style="text-align:right">${Math.round(leg.length_m)}m</td>
       <td style="text-align:right">${leg.max_slope_deg.toFixed(1)}°</td>
-      <td style="text-align:right;color:#00e5ff;font-weight:600">${leg.boulders_within_5m !== undefined ? leg.boulders_within_5m : '—'}</td>
+      <td style="text-align:right;color:#ff2bd6;font-weight:600">${leg.boulders_within_5m !== undefined ? leg.boulders_within_5m : '—'}</td>
     `;
     tbody.appendChild(tr);
   });
 
   // Render Elevation Profile Canvas
-  drawElevationProfile(thData.profile, thData.total_distance_m);
+  drawElevationProfile(thData.profile, thData.total_distance_m, thData.elevation_summary);
 }
 
 function updateBudget() {
   const thKey = String(currentThreshold);
   const thData = masterData.thresholds ? masterData.thresholds[thKey] : null;
-  if (!thData || !thData.safe) return;
+  if (!thData) return;
 
   const totalSeconds = thData.total_distance_m / walkingSpeed;
   const hours = Math.floor(totalSeconds / 3600);
@@ -498,7 +504,8 @@ function updateBudget() {
   document.getElementById('stat-walk-time').textContent = timeStr;
 }
 
-function drawElevationProfile(profile, totalDist) {
+// Requirement 3: Elevation profile plotting full closed loop with labeled axes & high/low points
+function drawElevationProfile(profile, totalDist, elevSummary) {
   const canvas = document.getElementById('profile-canvas');
   if (!canvas || !profile || profile.length < 2) return;
   const ctx = canvas.getContext('2d');
@@ -507,40 +514,89 @@ function drawElevationProfile(profile, totalDist) {
 
   ctx.clearRect(0, 0, W, H);
 
-  // Find min/max elevation
+  // Margins for axes labels
+  const padL = 46;
+  const padR = 12;
+  const padT = 20;
+  const padB = 22;
+
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  // Elevation range
   let minElev = Infinity, maxElev = -Infinity;
   profile.forEach(p => {
     if (p.elev < minElev) minElev = p.elev;
     if (p.elev > maxElev) maxElev = p.elev;
   });
 
-  // Add padding
-  const padElev = Math.max(5, (maxElev - minElev) * 0.1);
-  const yMin = minElev - padElev;
-  const yMax = maxElev + padElev;
+  const spanElev = Math.max(10, maxElev - minElev);
+  const yMin = minElev - spanElev * 0.08;
+  const yMax = maxElev + spanElev * 0.12;
 
-  document.getElementById('prof-y-min').textContent = Math.round(minElev) + 'm';
-  document.getElementById('prof-y-max').textContent = Math.round(maxElev) + 'm';
+  function getX(d_km) {
+    return padL + (d_km / (totalDist / 1000.0)) * plotW;
+  }
+  function getY(elev) {
+    return padT + plotH - ((elev - yMin) / (yMax - yMin)) * plotH;
+  }
 
-  // Coordinate transformers
-  function getX(dist) { return (dist / totalDist) * (W - 16) + 8; }
-  function getY(elev) { return H - 12 - ((elev - yMin) / (yMax - yMin)) * (H - 24); }
-
-  // Draw background horizontal gridlines
-  ctx.strokeStyle = '#1e1e30';
+  // Draw Axes & Grid
+  ctx.strokeStyle = '#252538';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let step = 0; step <= 3; step++) {
-    const y = 8 + step * ((H - 20) / 3);
-    ctx.moveTo(8, y);
-    ctx.lineTo(W - 8, y);
+  
+  // Y-axis grid & labels (Elevation in m)
+  const ySteps = 3;
+  ctx.fillStyle = '#889';
+  ctx.font = '9px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let s = 0; s <= ySteps; s++) {
+    const val = yMin + s * ((yMax - yMin) / ySteps);
+    const yPos = getY(val);
+    ctx.moveTo(padL, yPos);
+    ctx.lineTo(W - padR, yPos);
+    ctx.fillText(`${Math.round(val)}m`, padL - 4, yPos);
+  }
+
+  // X-axis grid & labels (Distance in km)
+  const maxKm = totalDist / 1000.0;
+  const xSteps = 4;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  for (let s = 0; s <= xSteps; s++) {
+    const valKm = (s / xSteps) * maxKm;
+    const xPos = getX(valKm);
+    ctx.moveTo(xPos, padT);
+    ctx.lineTo(xPos, H - padB);
+    ctx.fillText(`${valKm.toFixed(1)}k`, xPos, H - padB + 4);
   }
   ctx.stroke();
 
-  // Draw multi-colored elevation line segment by slope class
+  // Axis Titles
+  ctx.save();
+  ctx.fillStyle = '#667';
+  ctx.font = '8px sans-serif';
+  ctx.textAlign = 'center';
+  // Y axis title
+  ctx.translate(10, padT + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Elev (m)', 0, 0);
+  ctx.restore();
+
+  // X axis title
+  ctx.fillStyle = '#667';
+  ctx.font = '8px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Traverse Distance (km)', padL + plotW / 2, H - 9);
+
+  // Draw colored route line by slope class
   for (let i = 0; i < profile.length - 1; i++) {
     const p1 = profile[i];
-    const p2 = profile[i+1];
+    const p2 = profile[i + 1];
     const avgSlope = (p1.slope + p2.slope) / 2.0;
 
     let col = '#00e676'; // safe <= 15
@@ -550,18 +606,62 @@ function drawElevationProfile(profile, totalDist) {
     ctx.strokeStyle = col;
     ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.moveTo(getX(p1.d), getY(p1.elev));
-    ctx.lineTo(getX(p2.d), getY(p2.elev));
+    ctx.moveTo(getX(p1.d_km), getY(p1.elev));
+    ctx.lineTo(getX(p2.d_km), getY(p2.elev));
     ctx.stroke();
   }
 
-  // Draw stop indicators on profile
-  ctx.fillStyle = '#fff';
-  ctx.font = '9px sans-serif';
-  const startPt = profile[0];
+  // Verify closed loop points: Start and End
+  const startP = profile[0];
+  const endP = profile[profile.length - 1];
+  
+  ctx.fillStyle = '#00ff44';
   ctx.beginPath();
-  ctx.arc(getX(startPt.d), getY(startPt.elev), 3, 0, Math.PI * 2);
+  ctx.arc(getX(startP.d_km), getY(startP.elev), 3.5, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.fillStyle = '#00ff44';
+  ctx.beginPath();
+  ctx.arc(getX(endP.d_km), getY(endP.elev), 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mark Highest and Lowest Points
+  if (elevSummary && elevSummary.highest && elevSummary.lowest) {
+    const high = elevSummary.highest;
+    const low = elevSummary.lowest;
+
+    // Highest point callout
+    const hx = getX(high.d_km);
+    const hy = getY(high.elev);
+    ctx.fillStyle = '#ffea00';
+    ctx.beginPath();
+    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffea00';
+    ctx.font = 'bold 8.5px sans-serif';
+    ctx.textAlign = hx > W / 2 ? 'right' : 'left';
+    ctx.fillText(`▲ High ${Math.round(high.elev)}m`, hx + (hx > W / 2 ? -6 : 6), hy - 6);
+
+    // Lowest point callout
+    const lx = getX(low.d_km);
+    const ly = getY(low.elev);
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#00e5ff';
+    ctx.font = 'bold 8.5px sans-serif';
+    ctx.textAlign = lx > W / 2 ? 'right' : 'left';
+    ctx.fillText(`▼ Low ${Math.round(low.elev)}m`, lx + (lx > W / 2 ? -6 : 6), ly + 8);
+  }
 }
 </script>
 </body>
