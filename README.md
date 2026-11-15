@@ -1,6 +1,6 @@
 # Mars Marswalk Planner
 
-A web-based, slope-aware and rock-hazard traverse planner for Martian surface exploration in Gale Crater, Mars. The application integrates high-resolution terrain elevation (HiRISE DTM), context and ultra-high-resolution surface imagery (HiRISE ortho), remote global thermal inertia (THEMIS), and automated rock hazard detection to plan a continuous, safety-constrained loop traverse with a live Marswalk budget and elevation profile.
+A web-based, slope-aware and rock-hazard traverse planner for Martian surface exploration in Gale Crater, Mars. The application integrates high-resolution terrain elevation (HiRISE DTM), context and ultra-high-resolution surface imagery (HiRISE ortho), remote global thermal inertia (THEMIS), and possible-boulder detection from shadows (not validated) to plan a continuous, safety-constrained loop traverse with a live Marswalk budget and elevation profile.
 
 ## How to Run
 
