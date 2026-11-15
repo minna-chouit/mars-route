@@ -6,28 +6,148 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { display: flex; height: 100vh; background: #111; color: #eee; font-family: 'Segoe UI', sans-serif; }
-  #map { flex: 1; background: #2a2a2a; }
+  body { display: flex; height: 100vh; background: #111; color: #eee; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+  #map { flex: 1; background: #222; }
+  
   #panel {
-    width: 320px; background: #1a1a2e; display: flex; flex-direction: column;
-    padding: 20px 16px; gap: 14px; overflow-y: auto;
+    width: 340px; background: #151522; display: flex; flex-direction: column;
+    padding: 16px 14px; gap: 12px; overflow-y: auto;
     border-left: 2px solid #e63f17; flex-shrink: 0;
   }
-  h1 { font-size: 1.1rem; color: #e8954e; letter-spacing: 1px; text-transform: uppercase; }
-  h2 { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-box { background: #0d0d1a; border: 1px solid #333; border-radius: 6px; padding: 8px 6px; text-align: center; }
-  .stat-box .val { font-size: 1.35rem; font-weight: 700; color: #e8954e; }
-  .stat-box .lbl { font-size: 0.65rem; color: #888; margin-top: 2px; }
-  #no-route-msg { display:none; background:#3a0000; border:1px solid #c00; border-radius:6px;
-    padding:12px; color:#ff8080; font-size:0.85rem; text-align:center; }
-  .legend { display: flex; flex-direction: column; gap: 5px; }
-  .leg-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
-  .swatch { width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0; }
+  
+  h1 { font-size: 1.05rem; color: #e8954e; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+  h2 { font-size: 0.72rem; color: #9aa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+  
+  /* Section Card */
+  .card {
+    background: #1b1b2d;
+    border: 1px solid #2e2e46;
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Safety Slider */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .slider-row input[type=range] {
+    flex: 1;
+    accent-color: #ff6400;
+    cursor: pointer;
+  }
+  .slider-badge {
+    background: #ff6400;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    min-width: 36px;
+    text-align: center;
+  }
+  
+  /* Status / Alert Messages */
+  #no-route-msg {
+    display: none;
+    background: #3a1010;
+    border: 1px solid #d32f2f;
+    border-radius: 6px;
+    padding: 10px;
+    color: #ff9999;
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  /* Grid Stats */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-box {
+    background: #10101c;
+    border: 1px solid #28283c;
+    border-radius: 5px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .stat-box .val { font-size: 1.25rem; font-weight: 700; color: #e8954e; }
+  .stat-box .lbl { font-size: 0.63rem; color: #889; margin-top: 1px; }
+
+  /* Budget inputs */
+  .speed-ctrl {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #bbb;
+    background: #10101c;
+    border: 1px solid #28283c;
+    border-radius: 5px;
+    padding: 6px 8px;
+  }
+  .speed-ctrl input {
+    width: 52px;
+    background: #1b1b2d;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  /* Legs Table */
+  .leg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.68rem;
+  }
+  .leg-table th {
+    text-align: left;
+    color: #778;
+    padding: 3px 2px;
+    border-bottom: 1px solid #334;
+  }
+  .leg-table td {
+    padding: 3px 2px;
+    color: #ccc;
+    border-bottom: 1px solid #222a38;
+  }
+  .leg-table tr:last-child td { border-bottom: none; }
+
+  /* Canvas Elevation Profile */
+  #profile-container {
+    background: #0d0d18;
+    border: 1px solid #28283c;
+    border-radius: 5px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #profile-canvas {
+    width: 100%;
+    height: 95px;
+    display: block;
+  }
+  .profile-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    color: #778;
+  }
+
+  /* Legend */
+  .legend { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; }
+  .leg-row { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
   
   .ti-bar {
     width: 100%;
-    height: 12px;
+    height: 10px;
     border-radius: 3px;
     background: linear-gradient(to right, #0d0887, #6a00a8, #b12a90, #e16462, #fca636, #f0f921);
     margin: 4px 0 2px 0;
@@ -35,23 +155,19 @@
   .ti-labels {
     display: flex;
     justify-content: space-between;
-    font-size: 0.68rem;
-    color: #bbb;
-  }
-  .sub-note {
     font-size: 0.64rem;
-    color: #888;
-    margin-top: 2px;
-    font-style: italic;
+    color: #aaa;
   }
 
-  .note { font-size: 0.68rem; color: #777; border-top: 1px solid #333; padding-top: 10px; line-height: 1.6; }
-  .credit { font-size: 0.62rem; color: #555; border-top: 1px solid #222; padding-top: 8px; line-height: 1.6; }
-  .leaflet-control-layers { background:#1a1a2e !important; color:#eee !important; border:1px solid #444 !important; border-radius:6px !important; }
-  .leaflet-control-layers label { color:#ccc !important; font-size:0.82rem; }
-  .leaflet-control-layers-separator { border-top:1px solid #444 !important; }
-  .leaflet-popup-content-wrapper { background:#1a1a2e; color:#eee; border:1px solid #555; }
-  .leaflet-popup-tip { background:#1a1a2e; }
+  .note { font-size: 0.65rem; color: #778; border-top: 1px solid #28283c; padding-top: 8px; line-height: 1.5; }
+  .credit { font-size: 0.60rem; color: #556; border-top: 1px solid #20202e; padding-top: 6px; line-height: 1.5; }
+  
+  /* Leaflet Controls & Popups */
+  .leaflet-control-layers { background:#161626 !important; color:#eee !important; border:1px solid #3e3e56 !important; border-radius:6px !important; }
+  .leaflet-control-layers label { color:#ccc !important; font-size:0.78rem; }
+  .leaflet-control-layers-separator { border-top:1px solid #3e3e56 !important; }
+  .leaflet-popup-content-wrapper { background:#161626; color:#eee; border:1px solid #445; font-size:0.75rem; border-radius:5px; }
+  .leaflet-popup-tip { background:#161626; }
 </style>
 </head>
 <body>
@@ -60,42 +176,89 @@
 
 <div id="panel">
   <h1>🚀 Marswalk Planner</h1>
-  <div><h2>Gale Crater — HiRISE &amp; THEMIS</h2></div>
+  <div><h2>Gale Crater Traverse</h2></div>
 
-  <div>
-    <h2>Route &amp; Terrain Statistics</h2>
-    <div id="no-route-msg">⛔ No safe route found</div>
-    <div class="stat-grid" id="stats">
-      <div class="stat-box"><div class="val" id="stat-length">—</div><div class="lbl">Length (m)</div></div>
-      <div class="stat-box"><div class="val" id="stat-slope">—</div><div class="lbl">Max Slope</div></div>
-      <div class="stat-box"><div class="val" id="stat-caution">—</div><div class="lbl">% Caution</div></div>
-      <div class="stat-box"><div class="val" id="stat-pts">—</div><div class="lbl">Waypoints</div></div>
-      <div class="stat-box"><div class="val" id="stat-ti-start">—</div><div class="lbl">Start TI (tiu)</div></div>
-      <div class="stat-box"><div class="val" id="stat-ti-target">—</div><div class="lbl">Target TI (tiu)</div></div>
+  <!-- Safety Threshold Slider -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2>Safety Threshold (Max Slope)</h2>
+      <span class="slider-badge" id="slider-val">20°</span>
+    </div>
+    <div class="slider-row">
+      <span style="font-size:0.68rem; color:#888;">10°</span>
+      <input type="range" id="safety-slider" min="10" max="20" step="5" value="20"/>
+      <span style="font-size:0.68rem; color:#888;">20°</span>
+    </div>
+    <div id="no-route-msg"></div>
+  </div>
+
+  <!-- Marswalk Budget -->
+  <div class="card" id="budget-card">
+    <h2>Marswalk Budget &amp; Constraints</h2>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="val" id="stat-dist">—</div><div class="lbl">Total Loop (m)</div></div>
+      <div class="stat-box"><div class="val" id="stat-walk-time">—</div><div class="lbl">Walking Time</div></div>
+      <div class="stat-box"><div class="val" id="stat-max-rad">—</div><div class="lbl">Max Radius from Base</div></div>
+      <div class="stat-box"><div class="val" id="stat-slope">—</div><div class="lbl">Max Slope (Deg)</div></div>
+    </div>
+    <div class="speed-ctrl">
+      <span>Assumed Walking Speed:</span>
+      <div>
+        <input type="number" id="speed-input" value="0.8" step="0.1" min="0.2" max="3.0"/>
+        <span style="color:#889;">m/s</span>
+      </div>
+    </div>
+    <div style="font-size:0.62rem; color:#778; font-style:italic;">
+      * Walking speed assumption: ~0.8 m/s (~2.9 km/h suited EVA walk per Apollo/NASA studies).
     </div>
   </div>
 
-  <div>
+  <!-- Per-Leg Breakdown -->
+  <div class="card" id="legs-card">
+    <h2>Traverse Legs (Start → Stops → Return)</h2>
+    <table class="leg-table">
+      <thead>
+        <tr><th>Leg</th><th>Dist</th><th>Max°</th><th>Caut%</th></tr>
+      </thead>
+      <tbody id="leg-tbody">
+        <tr><td colspan="4" style="color:#778;">Loading legs…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Elevation Profile Chart -->
+  <div class="card" id="profile-card">
+    <h2>Elevation Profile along Traverse</h2>
+    <div id="profile-container">
+      <canvas id="profile-canvas" width="288" height="95"></canvas>
+      <div class="profile-labels">
+        <span id="prof-y-max">-4200m</span>
+        <span>Line: <span style="color:#00e676">■ Safe</span> <span style="color:#ffd600">■ Caution</span></span>
+        <span id="prof-y-min">-4420m</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slope & Terrain Legends -->
+  <div class="card">
     <h2>Slope Classification</h2>
     <div class="legend">
       <div class="leg-row"><div class="swatch" style="background:rgba(0,180,0,0.6)"></div> Safe ≤15° (assumed)</div>
       <div class="leg-row"><div class="swatch" style="background:rgba(255,220,0,0.7)"></div> Caution 15–20°</div>
-      <div class="leg-row"><div class="swatch" style="background:rgba(220,0,0,0.75)"></div> No-Go >20° + 1px buffer</div>
-      <div class="leg-row"><div class="swatch" style="background:rgba(255,100,0,0.9);border:2px solid #fff"></div> Route</div>
-      <div class="leg-row"><div class="swatch" style="background:#00ff44;border-radius:50%"></div> Start</div>
-      <div class="leg-row"><div class="swatch" style="background:#ff2244;border-radius:50%"></div> Target</div>
+      <div class="leg-row"><div class="swatch" style="background:rgba(220,0,0,0.75)"></div> No-Go > threshold + 1px</div>
+      <div class="leg-row"><div class="swatch" style="background:rgba(255,100,0,0.95);border:1px solid #fff"></div> Continuous Traverse Route</div>
     </div>
   </div>
 
-  <div>
-    <h2>Thermal Inertia (THEMIS)</h2>
+  <!-- THEMIS Legend -->
+  <div class="card">
+    <h2>Thermal Inertia (THEMIS 100m)</h2>
     <div class="ti-bar"></div>
     <div class="ti-labels">
-      <span id="ti-legend-min">Low</span>
-      <span>J m⁻² K⁻¹ s⁻½ (tiu)</span>
-      <span id="ti-legend-max">High</span>
+      <span id="ti-legend-min">402 tiu</span>
+      <span>J m⁻² K⁻¹ s⁻½</span>
+      <span id="ti-legend-max">674 tiu</span>
     </div>
-    <div class="sub-note">Coarse spatial resolution (100 m/px native, bilinearly resampled)</div>
   </div>
 
   <div class="note">
@@ -107,99 +270,274 @@
 
   <div class="credit">
     <strong>Data credits:</strong><br/>
-    • HiRISE imagery &amp; DTM: NASA/JPL/University of Arizona<br/>
-    • DTM production: USGS Astrogeology Science Center<br/>
-    • Thermal Inertia: NASA/JPL/Arizona State University (THEMIS), mosaic by USGS Astrogeology<br/>
-    Datasets: DTEEC_001488_1750_001752_1750_U02 / THEMIS Quantitative Mosaic
+    • HiRISE imagery &amp; DTM: NASA/JPL/Univ. of Arizona (USGS Astrogeology)<br/>
+    • Thermal Inertia: NASA/JPL/Arizona State Univ. (THEMIS mosaic by USGS)
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+let masterData = null;
+let currentThreshold = 20;
+let walkingSpeed = 0.8; // m/s default
+
+let mapInstance = null;
+let routePolyline = null;
+let markersGroup = null;
+
+// Load route.json
 fetch('route.json')
   .then(r => r.json())
-  .then(initMap)
-  .catch(() => initMap(null));
+  .then(data => {
+    masterData = data;
+    initApp();
+  })
+  .catch(err => {
+    document.getElementById('no-route-msg').style.display = 'block';
+    document.getElementById('no-route-msg').textContent = 'Error loading route.json. Please run step3_route.py.';
+  });
 
-function initMap(d) {
+function initApp() {
   const IMG_W = 1977, IMG_H = 1977;
   const bounds = [[0, 0], [IMG_H, IMG_W]];
 
-  const map = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 4 });
+  mapInstance = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 4 });
   function rc2ll(r, c) { return [IMG_H - r, c]; }
 
-  const orthoLayer     = L.imageOverlay('ortho.png',       bounds, { opacity: 1.0 });
-  const hillshadeLayer = L.imageOverlay('hillshade.png',   bounds, { opacity: 0.65 });
-  const slopeLayer     = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(map);
-  const themisLayer    = L.imageOverlay('themis.png',      bounds, { opacity: 0.75 });
+  // ── Overlays ─────────────────────────────────────────────────────────────
+  // 0. THEMIS: 50% opacity and UNCHECKED by default
+  const themisLayer = L.imageOverlay('themis.png', bounds, { opacity: 0.5 });
+  const orthoLayer = L.imageOverlay('ortho.png', bounds, { opacity: 1.0 });
+  const hillshadeLayer = L.imageOverlay('hillshade.png', bounds, { opacity: 0.65 });
+  
+  // Slope classes: CHECKED by default
+  const slopeLayer = L.imageOverlay('slope_class.png', bounds, { opacity: 0.7 }).addTo(mapInstance);
 
-  map.fitBounds(bounds);
+  mapInstance.fitBounds(bounds);
 
-  let routeLayer, startMarker, targetMarker;
+  // Markers and route layer groups
+  markersGroup = L.layerGroup().addTo(mapInstance); // checked by default
+  const routeGroup = L.layerGroup().addTo(mapInstance); // checked by default
 
-  if (d && d.no_route) {
-    document.getElementById('no-route-msg').style.display = 'block';
-    document.getElementById('stats').style.display = 'none';
-  } else if (d && d.route.length > 0) {
-    const pts = d.route
-      .filter((_, i) => i % 3 === 0 || i === d.route.length - 1)
-      .map(([r, c]) => rc2ll(r, c));
-    routeLayer = L.polyline(pts, { color: '#ff6400', weight: 3, opacity: 0.95 }).addTo(map);
+  // Populate Stop Markers
+  if (masterData.stops) {
+    masterData.stops.forEach((s, idx) => {
+      const isStart = s.role === 'start';
+      const color = isStart ? '#00ff44' : (idx === 1 ? '#00e5ff' : (idx === 2 ? '#ffea00' : '#ff3d00'));
+      const glow = isStart ? '#0f0' : '#fa0';
+      const icon = L.divIcon({
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 8px ${glow}"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
 
-    const [sr, sc] = d.start;
-    const [tr, tc] = d.target;
-    const tLabel   = d.target_label || 'Target';
+      const popupHtml = `
+        <b style="color:#e8954e;font-size:0.85rem">${s.name}</b><br/>
+        <div style="margin:4px 0;line-height:1.35;color:#ddd">${s.desc}</div>
+        <div style="font-size:0.7rem;color:#889;border-top:1px solid #334;padding-top:3px;margin-top:3px">
+          Elev: <b>${s.elevation_m} m</b> | Slope: <b>${s.slope_deg}°</b>
+          ${s.ti_val ? `| TI: <b>${s.ti_val} tiu</b>` : ''}
+        </div>
+      `;
 
-    const greenIcon = L.divIcon({
-      html: '<div style="width:16px;height:16px;border-radius:50%;background:#00ff44;border:3px solid #fff;box-shadow:0 0 8px #0f0"></div>',
-      iconSize: [16,16], iconAnchor: [8,8]
+      L.marker(rc2ll(s.rc[0], s.rc[1]), { icon })
+        .bindPopup(popupHtml)
+        .addTo(markersGroup);
     });
-    const redIcon = L.divIcon({
-      html: '<div style="width:16px;height:16px;border-radius:50%;background:#ff2244;border:3px solid #fff;box-shadow:0 0 8px #f00"></div>',
-      iconSize: [16,16], iconAnchor: [8,8]
-    });
-
-    const startPopup = `<b>Start</b><br/>TI: ${d.ti_start !== undefined ? d.ti_start + ' tiu' : 'N/A'}`;
-    const targetPopup = `<b>${tLabel}</b><br/>TI: ${d.ti_target !== undefined ? d.ti_target + ' tiu' : 'N/A'}`;
-
-    startMarker  = L.marker(rc2ll(sr, sc), { icon: greenIcon }).bindPopup(startPopup).addTo(map);
-    targetMarker = L.marker(rc2ll(tr, tc), { icon: redIcon   }).bindPopup(targetPopup).addTo(map);
-
-    document.getElementById('stat-length').textContent  = d.length_m.toFixed(0);
-    document.getElementById('stat-slope').textContent   = d.max_slope_deg.toFixed(1) + '°';
-    document.getElementById('stat-caution').textContent = d.pct_caution.toFixed(1) + '%';
-    document.getElementById('stat-pts').textContent     = d.route.length;
-
-    if (d.ti_start !== undefined && d.ti_start !== null) {
-      document.getElementById('stat-ti-start').textContent = Math.round(d.ti_start);
-    }
-    if (d.ti_target !== undefined && d.ti_target !== null) {
-      document.getElementById('stat-ti-target').textContent = Math.round(d.ti_target);
-    }
-    if (d.ti_min !== undefined && d.ti_max !== undefined) {
-      document.getElementById('ti-legend-min').textContent = Math.round(d.ti_min);
-      document.getElementById('ti-legend-max').textContent = Math.round(d.ti_max);
-    }
   }
 
+  // Layer controls
   const overlays = {
     'Ortho image': orthoLayer,
     'Hillshade': hillshadeLayer,
     'Slope classes': slopeLayer,
-    'Thermal Inertia (THEMIS)': themisLayer,
+    'Thermal Inertia (THEMIS 50%)': themisLayer,
+    'Traverse Route': routeGroup,
+    'Science Stops & Base': markersGroup
   };
-  if (routeLayer)    overlays['Route']  = routeLayer;
-  if (startMarker)   overlays['Start']  = startMarker;
-  if (targetMarker)  overlays['Target'] = targetMarker;
+  L.control.layers({}, overlays, { collapsed: false }).addTo(mapInstance);
 
-  L.control.layers({}, overlays, { collapsed: false }).addTo(map);
+  // Update THEMIS legend limits if present
+  if (masterData.ti_min !== undefined) {
+    document.getElementById('ti-legend-min').textContent = Math.round(masterData.ti_min) + ' tiu';
+    document.getElementById('ti-legend-max').textContent = Math.round(masterData.ti_max) + ' tiu';
+  }
 
-  map.on('click', e => {
-    const row = Math.round(IMG_H - e.latlng.lat), col = Math.round(e.latlng.lng);
-    L.popup().setLatLng(e.latlng)
-      .setContent(`row=${row}, col=${col}<br/><small>Paste into config.py</small>`)
-      .openOn(map);
+  // Safety slider change listener
+  const slider = document.getElementById('safety-slider');
+  slider.addEventListener('input', e => {
+    currentThreshold = parseInt(e.target.value);
+    document.getElementById('slider-val').textContent = currentThreshold + '°';
+    renderThreshold(routeGroup, rc2ll);
   });
+
+  // Speed input change listener
+  const speedInput = document.getElementById('speed-input');
+  speedInput.addEventListener('input', e => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && val > 0) {
+      walkingSpeed = val;
+      updateBudget();
+    }
+  });
+
+  // Initial render with threshold = 20
+  renderThreshold(routeGroup, rc2ll);
+}
+
+function renderThreshold(routeGroup, rc2ll) {
+  routeGroup.clearLayers();
+  const thKey = String(currentThreshold);
+  const thData = masterData.thresholds ? masterData.thresholds[thKey] : null;
+
+  const noRouteMsg = document.getElementById('no-route-msg');
+  const budgetCard = document.getElementById('budget-card');
+  const legsCard = document.getElementById('legs-card');
+  const profileCard = document.getElementById('profile-card');
+
+  if (!thData || !thData.safe) {
+    noRouteMsg.style.display = 'block';
+    noRouteMsg.innerHTML = `⚠️ <b>No safe route found for ${currentThreshold}° threshold.</b><br/>` +
+      ((thData && thData.reason) ? thData.reason : 'Terrain exceeds slope limit along required legs.');
+    budgetCard.style.opacity = '0.4';
+    legsCard.style.opacity = '0.4';
+    profileCard.style.opacity = '0.4';
+    
+    document.getElementById('stat-dist').textContent = '—';
+    document.getElementById('stat-walk-time').textContent = '—';
+    document.getElementById('stat-max-rad').textContent = '—';
+    document.getElementById('stat-slope').textContent = '—';
+    document.getElementById('leg-tbody').innerHTML = '<tr><td colspan="4" style="color:#d99;text-align:center">Traverse blocked</td></tr>';
+    
+    const canvas = document.getElementById('profile-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+
+  // Route is safe!
+  noRouteMsg.style.display = 'none';
+  budgetCard.style.opacity = '1.0';
+  legsCard.style.opacity = '1.0';
+  profileCard.style.opacity = '1.0';
+
+  // Draw continuous route polyline
+  const pts = thData.route
+    .filter((_, i) => i % 3 === 0 || i === thData.route.length - 1)
+    .map(([r, c]) => rc2ll(r, c));
+
+  routePolyline = L.polyline(pts, {
+    color: '#ff6400',
+    weight: 3.5,
+    opacity: 0.95
+  }).addTo(routeGroup);
+
+  // Update budget values
+  document.getElementById('stat-dist').textContent = Math.round(thData.total_distance_m) + ' m';
+  document.getElementById('stat-max-rad').textContent = Math.round(thData.max_distance_from_start_m) + ' m';
+  document.getElementById('stat-slope').textContent = thData.max_slope_deg.toFixed(1) + '°';
+  updateBudget();
+
+  // Populate legs table
+  const tbody = document.getElementById('leg-tbody');
+  tbody.innerHTML = '';
+  thData.legs.forEach(leg => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${leg.name.replace(/Leg \d+: /, '')}</b></td>
+      <td style="text-align:right">${Math.round(leg.length_m)}m</td>
+      <td style="text-align:right">${leg.max_slope_deg.toFixed(1)}°</td>
+      <td style="text-align:right">${leg.pct_caution.toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Render Elevation Profile Canvas
+  drawElevationProfile(thData.profile, thData.total_distance_m);
+}
+
+function updateBudget() {
+  const thKey = String(currentThreshold);
+  const thData = masterData.thresholds ? masterData.thresholds[thKey] : null;
+  if (!thData || !thData.safe) return;
+
+  const totalSeconds = thData.total_distance_m / walkingSpeed;
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.round((totalSeconds % 3600) / 60);
+
+  let timeStr = '';
+  if (hours > 0) {
+    timeStr = `${hours}h ${mins}m`;
+  } else {
+    timeStr = `${mins} min`;
+  }
+  document.getElementById('stat-walk-time').textContent = timeStr;
+}
+
+function drawElevationProfile(profile, totalDist) {
+  const canvas = document.getElementById('profile-canvas');
+  if (!canvas || !profile || profile.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Find min/max elevation
+  let minElev = Infinity, maxElev = -Infinity;
+  profile.forEach(p => {
+    if (p.elev < minElev) minElev = p.elev;
+    if (p.elev > maxElev) maxElev = p.elev;
+  });
+
+  // Add padding
+  const padElev = Math.max(5, (maxElev - minElev) * 0.1);
+  const yMin = minElev - padElev;
+  const yMax = maxElev + padElev;
+
+  document.getElementById('prof-y-min').textContent = Math.round(minElev) + 'm';
+  document.getElementById('prof-y-max').textContent = Math.round(maxElev) + 'm';
+
+  // Coordinate transformers
+  function getX(dist) { return (dist / totalDist) * (W - 16) + 8; }
+  function getY(elev) { return H - 12 - ((elev - yMin) / (yMax - yMin)) * (H - 24); }
+
+  // Draw background horizontal gridlines
+  ctx.strokeStyle = '#1e1e30';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let step = 0; step <= 3; step++) {
+    const y = 8 + step * ((H - 20) / 3);
+    ctx.moveTo(8, y);
+    ctx.lineTo(W - 8, y);
+  }
+  ctx.stroke();
+
+  // Draw multi-colored elevation line segment by slope class
+  for (let i = 0; i < profile.length - 1; i++) {
+    const p1 = profile[i];
+    const p2 = profile[i+1];
+    const avgSlope = (p1.slope + p2.slope) / 2.0;
+
+    let col = '#00e676'; // safe <= 15
+    if (avgSlope > 15.0 && avgSlope <= 20.0) col = '#ffd600'; // caution
+    else if (avgSlope > 20.0) col = '#ff1744'; // no-go
+
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(getX(p1.d), getY(p1.elev));
+    ctx.lineTo(getX(p2.d), getY(p2.elev));
+    ctx.stroke();
+  }
+
+  // Draw stop indicators on profile
+  ctx.fillStyle = '#fff';
+  ctx.font = '9px sans-serif';
+  const startPt = profile[0];
+  ctx.beginPath();
+  ctx.arc(getX(startPt.d), getY(startPt.elev), 3, 0, Math.PI * 2);
+  ctx.fill();
 }
 </script>
 </body>
